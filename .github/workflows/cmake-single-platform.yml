@@ -14,36 +14,54 @@ env:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            arch: x86_64
+            install_prefix: /usr/local
+          - os: macos-latest
+            arch: arm64
+            install_prefix: /opt/homebrew
+
     steps:
     - uses: actions/checkout@v4
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: |
+        mkdir build-${{ matrix.arch }} && cd build-${{ matrix.arch }}
+        cmake .. \
+          -DCMAKE_INSTALL_PREFIX=${{ matrix.install_prefix }} \
+          -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
-      run: cmake --build build --config ${{env.BUILD_TYPE}}
+      run: |
+        cd build-${{ matrix.arch }}
+        cmake --build . --config ${{env.BUILD_TYPE}}
 
     - name: Collect Artifacts
       run: |
-        mkdir -p ${{env.ARTIFACT_DIR}}
-        cp build/pHash_demo ${{env.ARTIFACT_DIR}}/ || true
-        cp build/libpHash.a ${{env.ARTIFACT_DIR}}/ || true
+        mkdir -p ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}
+        cp build-${{ matrix.arch }}/pHash_demo ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
+        cp build-${{ matrix.arch }}/libpHash.a ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
 
     - name: Create Release
       if: github.event_name == 'release'
       uses: softprops/action-gh-release@v2
       with:
-        files: ${{env.ARTIFACT_DIR}}/*
+        files: ${{env.ARTIFACT_DIR}}/**/*
         tag_name: ${{ github.ref_name }}
         name: "pHASH ${{ github.ref_name }}"
         body: |
-          ### pHash Build Artifacts
+          ### Multi-architecture Build
           **Version:** ${{ github.ref_name }}
-          **Build Date:** ${{ steps.get-date.outputs.date }}
-          **Commit:** [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
-        draft: false
-        prerelease: false
+          **Build Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          **Supported Architectures:**
+          - x86_64 (Linux)
+          - arm64 (macOS)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -51,6 +69,6 @@ jobs:
       if: always() && github.event_name != 'release'
       uses: actions/upload-artifact@v4
       with:
-        name: phash-build-${{ github.run_id }}
-        path: ${{env.ARTIFACT_DIR}}
+        name: phash-build-${{ matrix.os }}-${{ matrix.arch }}
+        path: ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}
         retention-days: 1
