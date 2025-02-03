@@ -109,7 +109,7 @@ CMAKE_INSTALL_NAME_TOOL:FILEPATH=/usr/bin/install_name_tool
 CMAKE_INSTALL_OLDINCLUDEDIR:PATH=/usr/include
 
 //Install path prefix, prepended onto install directories.
-CMAKE_INSTALL_PREFIX:PATH=/opt/homebrew
+CMAKE_INSTALL_PREFIX:PATH=/usr/local
 
 //Run-time variable data (LOCALSTATEDIR/run)
 CMAKE_INSTALL_RUNSTATEDIR:PATH=
@@ -159,7 +159,7 @@ CMAKE_OBJCOPY:FILEPATH=CMAKE_OBJCOPY-NOTFOUND
 CMAKE_OBJDUMP:FILEPATH=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/objdump
 
 //Build architectures for OSX
-CMAKE_OSX_ARCHITECTURES:STRING=arm64
+CMAKE_OSX_ARCHITECTURES:STRING=
 
 //Minimum OS X version to target for deployment (at runtime); newer
 // APIs weak linked. Set to empty string for default value.
@@ -442,5 +442,5 @@ COMPILER_SUPPORTS_APPLE_M1:INTERNAL=1
 //Test COMPILER_SUPPORTS_ARM_SIMD
 COMPILER_SUPPORTS_ARM_SIMD:INTERNAL=1
 //CMAKE_INSTALL_PREFIX during last run
-_GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=/opt/homebrew
+_GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=/usr/local
 
