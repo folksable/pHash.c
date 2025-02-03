@@ -10,6 +10,9 @@ phash_demo
 *.obj
 *.elf
 
+# build folders
+build/
+
 # Linker output
 *.ilk
 *.map
