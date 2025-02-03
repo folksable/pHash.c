@@ -10,10 +10,10 @@ on:
 
 env:
   BUILD_TYPE: Release
-  ARTIFACT_NAME: phash-binaries
+  ARTIFACT_DIR: release-artifacts
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -26,37 +26,31 @@ jobs:
 
     - name: Collect Artifacts
       run: |
-        mkdir -p artifacts
-        cp build/pHash_demo artifacts/ || true
-        cp build/libpHash.a artifacts/ || true
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{env.ARTIFACT_NAME}}
-        path: release-artifacts/
-        retention-days: 1
-
-  create-release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - name: Download Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{env.ARTIFACT_NAME}}
-        path: release-artifacts
+        mkdir -p ${{env.ARTIFACT_DIR}}
+        cp build/pHash_demo ${{env.ARTIFACT_DIR}}/ || true
+        cp build/libpHash.a ${{env.ARTIFACT_DIR}}/ || true
 
     - name: Create Release
-      uses: softprops/action-gh-release@v2
       if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v2
       with:
-        files: |
-          release-artifacts/*
+        files: ${{env.ARTIFACT_DIR}}/*
         tag_name: ${{ github.ref_name }}
-        name: "v${{ github.ref_name }}"
+        name: "pHASH ${{ github.ref_name }}"
         body: |
-          pHash ${{ github.ref_name }} binaries
-          Built on: ${{ github.event.release.published_at }}
+          ### pHash Build Artifacts
+          **Version:** ${{ github.ref_name }}
+          **Build Date:** ${{ steps.get-date.outputs.date }}
+          **Commit:** [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Build Artifacts
+      if: always() && github.event_name != 'release'
+      uses: actions/upload-artifact@v4
+      with:
+        name: phash-build-${{ github.run_id }}
+        path: ${{env.ARTIFACT_DIR}}
+        retention-days: 1
