@@ -1,0 +1,7 @@
+/usr/local/lib/libpHash.a
+/usr/local/include/pHash.h
+/usr/local/bin/pHash_demo
+/usr/local/lib/cmake/pHash/pHashTargets.cmake
+/usr/local/lib/cmake/pHash/pHashTargets-noconfig.cmake
+/usr/local/lib/cmake/pHash/pHashConfig.cmake
+/usr/local/lib/cmake/pHash/pHashConfigVersion.cmake

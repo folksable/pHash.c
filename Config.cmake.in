@@ -1,0 +1,7 @@
+# Config.cmake.in
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+include("${CMAKE_CURRENT_LIST_DIR}/pHashTargets.cmake")
+
+check_required_components(pHash)
