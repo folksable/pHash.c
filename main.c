@@ -12,6 +12,11 @@ static unsigned char* generate_test_image(int width, int height) {
             data[idx+2] = 128;                   // Blue
         }
     }
+    // randomize the image slightly
+    for (int i = 0; i < width * height * 3; i++) {
+        data[i] += rand() % 16 - 8;
+    }
+
     return data;
 }
 
