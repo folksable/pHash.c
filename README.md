@@ -57,4 +57,6 @@ cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
 cmake .. \
   -DCMAKE_INSTALL_PREFIX=/opt/homebrew \
   -DCMAKE_OSX_ARCHITECTURES=arm64
+
+make && sudo make install
 ```

@@ -507,8 +507,8 @@ PhashConfig phash_config_default(void) {
 
 PhashError phash_initialize(void) {
 #if defined(__x86_64__) || defined(_M_X64)
-    g_avx2_enabled = true;
-    g_sse4_enabled = true;
+    g_avx2_enabled = 1;
+    g_sse4_enabled = 1;
 #elif defined(__aarch64__) || defined(_M_ARM64)
     // ARM NEON is always available on Apple M1
     g_avx2_enabled = 0;
