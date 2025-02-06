@@ -22,12 +22,21 @@ jobs:
           - os: ubuntu-latest
             arch: x86_64
             install_prefix: /usr/local
+            compiler: clang
           - os: macos-latest
             arch: arm64
             install_prefix: /opt/homebrew
+            compiler: clang
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          sudo apt-get update
+          sudo apt-get install -y clang
+        fi
 
     - name: Configure CMake
       run: |
@@ -35,13 +44,20 @@ jobs:
         cmake .. \
           -DCMAKE_INSTALL_PREFIX=${{ matrix.install_prefix }} \
           -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
-          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+          -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
+          -DCMAKE_C_FLAGS="-march=native -O3" \
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
+          -DCMAKE_UNITY_BUILD=ON \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 
     - name: Build
       run: |
         cd build-${{ matrix.arch }}
-        cmake --build . --config ${{env.BUILD_TYPE}}
+        cmake --build . --config ${{env.BUILD_TYPE}} --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
+    # Rest of the workflow remains the same...
     - name: Collect Artifacts
       run: |
         mkdir -p ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}

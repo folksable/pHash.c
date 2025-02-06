@@ -1,57 +1,76 @@
 cmake_minimum_required(VERSION 3.15)
 project(pHash VERSION 1.0.0 LANGUAGES C)
 
-# Configuration options
-option(PHASH_BUILD_EXAMPLES "Build example executables" ON)
-option(PHASH_ENABLE_SIMD "Enable architecture-specific SIMD optimizations" ON)
-
 # Set C standard
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Platform detection
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
-    set(PHASH_ARCH_ARM64 1)
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
-    set(PHASH_ARCH_X64 1)
+# Enable interprocedural optimization if available
+include(CheckIPOSupported)
+check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
+if(IPO_SUPPORTED)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
-# Compiler flags
-set(PHASH_COMPILE_OPTIONS)
-set(PHASH_LINK_OPTIONS)
+# Platform detection and SIMD flags
+include(CheckCCompilerFlag)
+set(SIMD_FLAGS)
 
-if(PHASH_ENABLE_SIMD)
-    include(CheckCCompilerFlag)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+    # ARM64 platform
+    set(PHASH_ARCH_ARM64 1)
     
-    if(PHASH_ARCH_X64)
-        check_c_compiler_flag(-mavx2 COMPILER_SUPPORTS_AVX2)
-        check_c_compiler_flag(-msse4.2 COMPILER_SUPPORTS_SSE42)
-        
-        if(COMPILER_SUPPORTS_AVX2 AND COMPILER_SUPPORTS_SSE42)
-            list(APPEND PHASH_COMPILE_OPTIONS -mavx2 -msse4.2)
+    # Check for Apple Silicon specific optimizations
+    check_c_compiler_flag("-mcpu=apple-m1" COMPILER_SUPPORTS_APPLE_M1)
+    if(COMPILER_SUPPORTS_APPLE_M1)
+        list(APPEND SIMD_FLAGS "-mcpu=apple-m1" "-mtune=apple-m1")
+    else()
+        # Generic ARM64 NEON optimizations
+        check_c_compiler_flag("-march=armv8-a+simd" COMPILER_SUPPORTS_ARM_SIMD)
+        if(COMPILER_SUPPORTS_ARM_SIMD)
+            list(APPEND SIMD_FLAGS "-march=armv8-a+simd")
         endif()
-        
-    elseif(PHASH_ARCH_ARM64)
-        check_c_compiler_flag("-mcpu=apple-m1" COMPILER_SUPPORTS_APPLE_M1)
-        check_c_compiler_flag(-march=armv8-a+simd COMPILER_SUPPORTS_ARM_SIMD)
-        
-        if(COMPILER_SUPPORTS_APPLE_M1)
-            list(APPEND PHASH_COMPILE_OPTIONS "-mcpu=apple-m1" "-mtune=apple-m1")
-        elseif(COMPILER_SUPPORTS_ARM_SIMD)
-            list(APPEND PHASH_COMPILE_OPTIONS -march=armv8-a+simd)
-        endif()
+    endif()
+    
+    # Enable ARM math optimizations
+    check_c_compiler_flag("-ffast-math" COMPILER_SUPPORTS_FAST_MATH)
+    if(COMPILER_SUPPORTS_FAST_MATH)
+        list(APPEND SIMD_FLAGS "-ffast-math")
+    endif()
+
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+    # x86_64 platform
+    set(PHASH_ARCH_X64 1)
+    
+    # Check for advanced x86_64 SIMD support
+    check_c_compiler_flag(-mavx2 COMPILER_SUPPORTS_AVX2)
+    check_c_compiler_flag(-msse4.2 COMPILER_SUPPORTS_SSE42)
+    check_c_compiler_flag(-mfma COMPILER_SUPPORTS_FMA)
+    
+    if(COMPILER_SUPPORTS_AVX2)
+        list(APPEND SIMD_FLAGS -mavx2)
+    endif()
+    
+    if(COMPILER_SUPPORTS_SSE42)
+        list(APPEND SIMD_FLAGS -msse4.2)
+    endif()
+    
+    if(COMPILER_SUPPORTS_FMA)
+        list(APPEND SIMD_FLAGS -mfma)
     endif()
 endif()
 
 # Common optimization flags
-list(APPEND PHASH_COMPILE_OPTIONS
+set(OPT_FLAGS
     -O3
     -Wall
     -Wextra
+    -fomit-frame-pointer
+    -ftree-vectorize
 )
 
-# Library target
-add_library(pHash
+# Shared library target
+add_library(pHash SHARED
     pHash.c
 )
 
@@ -60,35 +79,27 @@ target_include_directories(pHash PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
-target_compile_options(pHash PRIVATE ${PHASH_COMPILE_OPTIONS})
+# Apply all optimization flags
+target_compile_options(pHash PRIVATE
+    ${OPT_FLAGS}
+    ${SIMD_FLAGS}
+)
+
+# Link with math library
 target_link_libraries(pHash PRIVATE m)
 
-# Install rules
+# Installation rules
 include(GNUInstallDirs)
-
 install(TARGETS pHash
     EXPORT pHashTargets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 install(FILES pHash.h
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-# Example executable
-if(PHASH_BUILD_EXAMPLES)
-    add_executable(pHash_demo main.c)
-    target_compile_options(pHash_demo PRIVATE ${PHASH_COMPILE_OPTIONS})
-    target_link_libraries(pHash_demo PRIVATE pHash m)
-    
-    install(TARGETS pHash_demo
-        DESTINATION ${CMAKE_INSTALL_BINDIR}
-    )
-endif()
-
-# Package config
+# Package configuration
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
