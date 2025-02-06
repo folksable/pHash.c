@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#define STB_IMAGE_IMPLEMENTATION
 #include "pHash.h"
 
 // Mock image data for testing
