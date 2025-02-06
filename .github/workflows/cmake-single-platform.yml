@@ -35,7 +35,7 @@ jobs:
       run: |
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
           sudo apt-get update
-          sudo apt-get install -y clang
+          sudo apt-get install -y clang build-essential
         fi
 
     - name: Configure CMake
@@ -61,8 +61,16 @@ jobs:
     - name: Collect Artifacts
       run: |
         mkdir -p ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}
-        cp build-${{ matrix.arch }}/pHash_demo ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
-        cp build-${{ matrix.arch }}/libpHash.a ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
+        if [ -f "build-${{ matrix.arch }}/pHash_demo" ]; then
+          cp build-${{ matrix.arch }}/pHash_demo ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
+        elif [ -f "build-${{ matrix.arch }}/phash_demo" ]; then
+          cp build-${{ matrix.arch }}/phash_demo ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
+        fi
+        if [ -f "build-${{ matrix.arch }}/libpHash.a" ]; then
+          cp build-${{ matrix.arch }}/libpHash.a ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
+        elif [ -f "build-${{ matrix.arch }}/libphash.a" ]; then
+          cp build-${{ matrix.arch }}/libphash.a ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
+        fi
 
     - name: Create Release
       if: github.event_name == 'release'
