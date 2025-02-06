@@ -7,6 +7,10 @@ phash_demo
 # MacOS Finder
 .DS_Store
 
+# IDE files
+.vscode/
+.idea/
+
 # Object files
 *.o
 *.ko
