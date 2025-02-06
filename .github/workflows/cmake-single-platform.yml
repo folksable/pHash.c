@@ -41,16 +41,26 @@ jobs:
     - name: Configure CMake
       run: |
         mkdir build-${{ matrix.arch }} && cd build-${{ matrix.arch }}
-        cmake .. \
-          -DCMAKE_INSTALL_PREFIX=${{ matrix.install_prefix }} \
-          -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
-          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
-          -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
-          -DCMAKE_C_FLAGS="-march=native -O3" \
-          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
-          -DCMAKE_UNITY_BUILD=ON \
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        if [ "${{ matrix.os }}" = "macos-latest" ]; then
+          cmake .. \
+            -DCMAKE_INSTALL_PREFIX=${{ matrix.install_prefix }} \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+            -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_C_FLAGS="-O3" \
+            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        else
+          cmake .. \
+            -DCMAKE_INSTALL_PREFIX=${{ matrix.install_prefix }} \
+            -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_C_FLAGS="-march=native -O3" \
+            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        fi
 
     - name: Build
       run: |
