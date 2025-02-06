@@ -72,13 +72,20 @@ jobs:
       run: |
         mkdir -p ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}
         cd build-${{ matrix.arch }}
-        if [ -f "pHash_demo" ] || [ -f "phash_demo" ] || [ -f "libpHash.a" ] || [ -f "libphash.a" ]; then
-          [ -f "pHash_demo" ] && cp pHash_demo ../${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
-          [ -f "phash_demo" ] && cp phash_demo ../${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
-          [ -f "libpHash.a" ] && cp libpHash.a ../${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
-          [ -f "libphash.a" ] && cp libphash.a ../${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
-        else
-          echo "No artifacts found in $(pwd)"
+        # Copy all possible artifact variations
+        for file in pHash_demo phash_demo libpHash.a libphash.a *.h; do
+          if [ -f "$file" ]; then
+            cp "$file" ../${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
+          fi
+        done
+        # Also check in subdirectories
+        if [ -d "src" ]; then
+          find src -type f -name "*.a" -o -name "*.h" -exec cp {} ../${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/ \;
+        fi
+        # Verify if any files were copied
+        if [ ! "$(ls -A ../${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }})" ]; then
+          echo "No artifacts found in $(pwd) or its subdirectories"
+          ls -la
           exit 1
         fi
 
