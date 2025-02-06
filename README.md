@@ -50,13 +50,12 @@ int main() {
 ```bash 
 mkdir build && cd build
 
-# CMake with explicit source path
-cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
-
-# For Apple Silicon
 cmake .. \
-  -DCMAKE_INSTALL_PREFIX=/opt/homebrew \
-  -DCMAKE_OSX_ARCHITECTURES=arm64
+    -DCMAKE_INSTALL_PREFIX=/usr/local
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIB=ON \
+    -DBUILD_EXECUTABLE=ON \
+    -DBUILD_TESTS=ON
 
 make && sudo make install
 ```
