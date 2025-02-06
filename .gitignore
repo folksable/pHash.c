@@ -4,6 +4,9 @@ phash_demo
 # Prerequisites
 *.d
 
+# MacOS Finder
+.DS_Store
+
 # Object files
 *.o
 *.ko
