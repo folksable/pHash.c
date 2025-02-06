@@ -1,115 +1,103 @@
-name: CMake Build and Release
+name: Build and Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
+    tags:
+      - 'v*.*.*'
   pull_request:
-    branches: [ "main" ]
-  release:
-    types: [created]
-
-env:
-  BUILD_TYPE: Release
-  ARTIFACT_DIR: release-artifacts
+    branches: [ main ]
 
 jobs:
-  build-and-release:
+  build:
+    name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
+        build_type: [Release]
         include:
           - os: ubuntu-latest
-            arch: x86_64
-            install_prefix: /usr/local
-            compiler: clang
+            cc: gcc
+            artifact_name: pHash-Linux
+            shared_lib_ext: "*.so*"
           - os: macos-latest
-            arch: arm64
-            install_prefix: /opt/homebrew
-            compiler: clang
+            cc: clang
+            artifact_name: pHash-macOS
+            shared_lib_ext: "*.dylib"
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Dependencies
-      run: |
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          sudo apt-get update
-          sudo apt-get install -y clang build-essential
-        fi
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{github.workspace}}/build
 
-    - name: Configure CMake
+    - name: Configure CMake (Shared Library + Executable)
+      working-directory: ${{github.workspace}}/build
+      env:
+        CC: ${{ matrix.cc }}
       run: |
-        mkdir build-${{ matrix.arch }} && cd build-${{ matrix.arch }}
-        if [ "${{ matrix.os }}" = "macos-latest" ]; then
-          cmake .. \
-            -DCMAKE_INSTALL_PREFIX=${{ matrix.install_prefix }} \
-            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
-            -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
-            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
-            -DCMAKE_C_FLAGS="-O3" \
-            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        else
-          cmake .. \
-            -DCMAKE_INSTALL_PREFIX=${{ matrix.install_prefix }} \
-            -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
-            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
-            -DCMAKE_C_FLAGS="-march=native -O3" \
-            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        fi
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DBUILD_SHARED_LIB=ON \
+          -DBUILD_EXECUTABLE=ON
 
     - name: Build
-      run: |
-        cd build-${{ matrix.arch }}
-        cmake --build . --config ${{env.BUILD_TYPE}} --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu)
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{ matrix.build_type }} -j $(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
-    # Rest of the workflow remains the same...
-    - name: Collect Artifacts
-      run: |
-        mkdir -p ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}
-        cd build-${{ matrix.arch }}
-        # Copy all possible artifact variations
-        for file in pHash_demo phash_demo libpHash.a libphash.a *.h; do
-          if [ -f "$file" ]; then
-            cp "$file" ../${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/
-          fi
-        done
-        # Also check in subdirectories
-        if [ -d "src" ]; then
-          find src -type f -name "*.a" -o -name "*.h" -exec cp {} ../${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}/ \;
-        fi
-        # Verify if any files were copied
-        if [ ! "$(ls -A ../${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }})" ]; then
-          echo "No artifacts found in $(pwd) or its subdirectories"
-          ls -la
-          exit 1
-        fi
+    - name: Install
+      working-directory: ${{github.workspace}}/build
+      run: sudo cmake --install .
 
-    - name: Create Release
-      if: github.event_name == 'release'
-      uses: softprops/action-gh-release@v2
-      with:
-        files: ${{env.ARTIFACT_DIR}}/**/*
-        tag_name: ${{ github.ref_name }}
-        name: "pHASH ${{ github.ref_name }}"
-        body: |
-          ### Multi-architecture Build
-          **Version:** ${{ github.ref_name }}
-          **Build Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
-          **Supported Architectures:**
-          - x86_64 (Linux)
-          - arm64 (macOS)
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Prepare Artifacts
+      run: |
+        mkdir -p artifacts/bin artifacts/lib artifacts/include
+        # Copy executable
+        cp $(which pHash_exec) artifacts/bin/
+        # Copy shared library
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          cp /usr/local/lib/libpHash${{ matrix.shared_lib_ext }} artifacts/lib/
+        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+          cp /usr/local/lib/libpHash${{ matrix.shared_lib_ext }} artifacts/lib/
+        fi
+        # Copy header files
+        cp pHash.h artifacts/include/
+        # Create archive
+        cd artifacts
+        tar -czf ../${{ matrix.artifact_name }}.tar.gz *
 
     - name: Upload Build Artifacts
-      if: always() && github.event_name != 'release'
       uses: actions/upload-artifact@v4
       with:
-        name: phash-build-${{ matrix.os }}-${{ matrix.arch }}
-        path: ${{env.ARTIFACT_DIR}}/${{ matrix.os }}-${{ matrix.arch }}
-        retention-days: 1
+        name: ${{ matrix.artifact_name }}
+        path: ${{ matrix.artifact_name }}.tar.gz
+        retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/**/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Display Release URL
+        run: |
+          echo "Release created at: ${{ steps.create_release.outputs.url }}"

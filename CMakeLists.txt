@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.15)
 project(pHash VERSION 1.0.0 LANGUAGES C)
 
+# Build options
+option(BUILD_SHARED_LIB "Build shared library" OFF)
+option(BUILD_EXECUTABLE "Build standalone executable" ON)
+
 # Set C standard
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -15,7 +19,6 @@ endif()
 # Platform detection and SIMD flags
 include(CheckCCompilerFlag)
 set(SIMD_FLAGS)
-
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
     # ARM64 platform
     set(PHASH_ARCH_ARM64 1)
@@ -37,7 +40,6 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
     if(COMPILER_SUPPORTS_FAST_MATH)
         list(APPEND SIMD_FLAGS "-ffast-math")
     endif()
-
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
     # x86_64 platform
     set(PHASH_ARCH_X64 1)
@@ -70,56 +72,81 @@ set(OPT_FLAGS
 )
 
 # Shared library target
-add_library(pHash SHARED
-    pHash.c
-)
+if(BUILD_SHARED_LIB)
+    add_library(pHash SHARED
+        pHash.c
+    )
+    
+    target_include_directories(pHash PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include>
+    )
+    
+    target_compile_options(pHash PRIVATE
+        ${OPT_FLAGS}
+        ${SIMD_FLAGS}
+    )
+    
+    target_link_libraries(pHash PRIVATE m)
+    
+    # Installation rules for shared library
+    include(GNUInstallDirs)
+    install(TARGETS pHash
+        EXPORT pHashTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+    
+    install(FILES pHash.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+    
+    # Package configuration
+    include(CMakePackageConfigHelpers)
+    configure_package_config_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/pHashConfig.cmake
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/pHash
+    )
+    
+    write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/pHashConfigVersion.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion
+    )
+    
+    install(EXPORT pHashTargets
+        FILE pHashTargets.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/pHash
+    )
+    
+    install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/pHashConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/pHashConfigVersion.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/pHash
+    )
+endif()
 
-target_include_directories(pHash PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include>
-)
-
-# Apply all optimization flags
-target_compile_options(pHash PRIVATE
-    ${OPT_FLAGS}
-    ${SIMD_FLAGS}
-)
-
-# Link with math library
-target_link_libraries(pHash PRIVATE m)
-
-# Installation rules
-include(GNUInstallDirs)
-install(TARGETS pHash
-    EXPORT pHashTargets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-
-install(FILES pHash.h
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-
-# Package configuration
-include(CMakePackageConfigHelpers)
-configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/pHashConfig.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/pHash
-)
-
-write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/pHashConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
-
-install(EXPORT pHashTargets
-    FILE pHashTargets.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/pHash
-)
-
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/pHashConfig.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/pHashConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/pHash
-)
+# Standalone executable target
+if(BUILD_EXECUTABLE)
+    add_executable(pHash_exec 
+        main.c
+        pHash.c
+    )
+    
+    target_include_directories(pHash_exec PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+    
+    target_compile_options(pHash_exec PRIVATE
+        ${OPT_FLAGS}
+        ${SIMD_FLAGS}
+    )
+    
+    target_link_libraries(pHash_exec PRIVATE m)
+    
+    # Installation rules for executable
+    include(GNUInstallDirs)
+    install(TARGETS pHash_exec
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+endif()
