@@ -1,4 +1,5 @@
 #ifndef PHASH_H
+#define STB_IMAGE_IMPLEMENTATION
 #define PHASH_H
 
 #include <stdint.h>

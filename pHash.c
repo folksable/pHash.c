@@ -41,7 +41,7 @@ static bool is_power_of_two(int value) {
     return (value > 0) && ((value & (value - 1)) == 0);
 }
 
-static PhashError validate_config(const PhashConfig* config) {
+PhashError phash_config_validate(const PhashConfig* config) {
     if (!config) return PHASH_ERR_NULL_POINTER;
     
     if (config->dct_size < MIN_DCT_SIZE || 
@@ -389,7 +389,7 @@ PhashError phash_compute(const PhashImage* image,
     if (!image || !config || !out_hash) 
         return PHASH_ERR_NULL_POINTER;
     
-    if ((err = validate_config(config)) != PHASH_OK)
+    if ((err = phash_config_validate(config)) != PHASH_OK)
         return err;
     
     if ((err = resize_and_grayscale(image, config, &grayscale)) != PHASH_OK)
