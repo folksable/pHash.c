@@ -1,6 +1,16 @@
-# pHash.c: A Modern Perceptual Hash Library for Image Comparison
+# pHash.c: Perceptual Hash Library for Image Comparison
 
 The library presented here is a modern, flexible implementation of perceptual image hashing with several key improvements over existing solutions.
+
+## Table of Contents
+
+- [pHash.c: Perceptual Hash Library for Image Comparison](#phashc-perceptual-hash-library-for-image-comparison)
+  - [Table of Contents](#table-of-contents)
+  - [Core Architecture](#core-architecture)
+  - [Advantages Over Existing Solutions](#advantages-over-existing-solutions)
+  - [Performance Considerations](#performance-considerations)
+  - [Build](#build)
+  - [Usage](#usage)
 
 ## Core Architecture
 
@@ -39,12 +49,26 @@ The library is designed with performance in mind, offering:
 
 For developers looking to implement perceptual hashing in their projects, this library offers a more flexible and maintainable alternative to existing solutions, with modern features while maintaining a clean C89-compatible interface.
 
+## Build 
+
+```bash 
+mkdir build && cd build
+
+cmake .. \
+    -DCMAKE_INSTALL_PREFIX=/usr/local
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIB=ON \
+    -DBUILD_EXECUTABLE=ON \
+    -DBUILD_TESTS=ON
+
+make && sudo make install
+```
 
 ## Usage
 
 ```c
-#include "pHash.h"
 #include <stdio.h>
+#include <pHash.h>
 
 int main() {
     PhashError err;
@@ -84,17 +108,3 @@ int main() {
 }
 ```
 
-## Build 
-
-```bash 
-mkdir build && cd build
-
-cmake .. \
-    -DCMAKE_INSTALL_PREFIX=/usr/local
-    -DCMAKE_BUILD_TYPE=Release \
-    -DBUILD_SHARED_LIB=ON \
-    -DBUILD_EXECUTABLE=ON \
-    -DBUILD_TESTS=ON
-
-make && sudo make install
-```
