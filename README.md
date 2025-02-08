@@ -14,7 +14,10 @@ The library presented here is a modern, flexible implementation of perceptual im
 
 ## Core Architecture
 
+![Architecture](assets/architecture.png)
+
 The library implements perceptual hashing through DCT (Discrete Cosine Transform) with several unique features:
+
 
 1. **Flexible DCT Sizes**: Unlike traditional implementations that are fixed to 8x8 or 32x32 matrices, this library supports configurable DCT sizes from 8x8 up to 64x64 through the `dct_size` parameter.
 
