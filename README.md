@@ -1,5 +1,44 @@
-# pHash.c
-a perceptual image dct hashing library to compare image similarity
+# pHash.c: A Modern Perceptual Hash Library for Image Comparison
+
+The library presented here is a modern, flexible implementation of perceptual image hashing with several key improvements over existing solutions.
+
+## Core Architecture
+
+The library implements perceptual hashing through DCT (Discrete Cosine Transform) with several unique features:
+
+1. **Flexible DCT Sizes**: Unlike traditional implementations that are fixed to 8x8 or 32x32 matrices, this library supports configurable DCT sizes from 8x8 up to 64x64 through the `dct_size` parameter.
+
+2. **Multiple Color Space Conversions**: The library offers five different color space conversion methods:
+    - Standard luminosity (0.299R + 0.587G + 0.114B)
+    - Simple averaging
+    - Professional standards: Rec.601, Rec.709, and Rec.2100 for HDR content
+
+3. **Optimized DCT Implementations**: The library provides multiple DCT computation methods:
+    - Loeffler algorithm for 8x8 (fastest for small sizes)
+    - AAN (Arai-Agui-Nakajima) for power-of-2 sizes
+    - Lookup-table based approach
+    - Auto-selection based on input size
+
+## Advantages Over Existing Solutions
+
+1. **Precision Control**: The `use_high_precision` option allows switching between float and double precision, trading speed for accuracy when needed.
+
+2. **SIMD Support**: Built-in SIMD optimization support through the `enable_simd` flag, which can be toggled for performance testing.
+
+3. **Memory Safety**: Clear ownership semantics with `owns_memory` flag in the image structure, preventing memory leaks.
+
+4. **Error Handling**: Comprehensive error reporting system with detailed error codes and string descriptions.
+
+## Performance Considerations
+
+The library is designed with performance in mind, offering:
+- Multiple DCT implementation choices
+- SIMD optimizations
+- Configurable precision levels
+- Memory-efficient image handling
+
+For developers looking to implement perceptual hashing in their projects, this library offers a more flexible and maintainable alternative to existing solutions, with modern features while maintaining a clean C89-compatible interface.
+
 
 ## Usage
 
