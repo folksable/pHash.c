@@ -1,10 +1,10 @@
-# pHash.c: Perceptual Hash Library for Image Comparison
+# pHash.c: DCT Based Image Hashing Library 
 
 The library presented here is a modern, flexible implementation of perceptual image hashing with several key improvements over existing solutions.
 
 ## Table of Contents
 
-- [pHash.c: Perceptual Hash Library for Image Comparison](#phashc-perceptual-hash-library-for-image-comparison)
+- [pHash.c: DCT Based Image Hashing Library](#phashc-dct-based-image-hashing-library)
   - [Table of Contents](#table-of-contents)
   - [Core Architecture](#core-architecture)
   - [Advantages Over Existing Solutions](#advantages-over-existing-solutions)
